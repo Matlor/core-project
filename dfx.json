@@ -1,24 +1,15 @@
 {
-    "canisters": {
-        "backend": {
-            "main": "src/backend/main.mo",
-            "type": "motoko"
-        },
-
-
-        "frontend": {
-           "frontend":{
-               "entrypoint": "index.html"
-           },
-
-           "source": [
-               "dist/"
-           ],
-            "type": "assets"
-
-            
-        }
-    }
-
-
+	"canisters": {
+		"backend": {
+			"main": "src/backend/main.mo",
+			"type": "motoko"
+		},
+		"frontend": {
+			"frontend": {
+				"entrypoint": "index.html"
+			},
+			"source": ["dist/"],
+			"type": "assets"
+		}
+	}
 }

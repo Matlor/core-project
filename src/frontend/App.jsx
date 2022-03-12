@@ -1,85 +1,115 @@
-import { useEffect, useState } from "react";
-//import { Actor, HttpAgent } from "@dfinity/agent";
-import { AuthClient } from "@dfinity/auth-client";
-import { canisterId, createActor } from "../declarations/backend";
+import { useState } from "react";
+import { idlFactory as IDL } from "../declarations/backend";
+import Minter from "./Minter";
 import Header from "./Header";
 
-/* const handleAuth = async (authClient) => {
-  const identity = authClient.getIdentity();
-  const authenticatedActor = createActor(canisterId, {
-    agentOptions: {
-      identity,
-    },
-  });
-}; */
+const App = () => {
+	const [plug, setPlug] = useState({
+		isConnected: false,
+		plug: {},
+		actor: {},
+	});
 
-// checks identity when page re-renders
-// runs AFTER the render
+	const logoutHandler = async () => {
+		setPlug({
+			isConnected: false,
+			plug: {},
+			actor: {},
+		});
+	};
 
-// Like with async data I do have to check for the case that the data has not yet loaded
-// then it is easier to create it all the time
-function App() {
-  const [loggedIn, setLoggedIn] = useState(false);
-  console.log(loggedIn, "logged in state");
+	const loginHandler = async () => {
+		// Whitelist
+		const whitelist = [process.env.BACKEND_CANISTER_ID];
 
-  var actor = createActor(canisterId, {
-    agentOptions: {},
-  });
+		// "http://localhost:8000";
+		const host =
+			"https://" + `${process.env.BACKEND_CANISTER_ID}` + ".raw.ic0.app/";
 
-  const asyFunc = async () => {
-    var authClient = await AuthClient.create();
+		console.log(host, "host");
 
-    if (await authClient.isAuthenticated()) {
-      const identity = authClient.getIdentity();
-      actor = createActor(canisterId, {
-        agentOptions: {
-          identity,
-        },
-      });
-      // only if not yet, otherwise re-render loop
-      if (loggedIn === false) {
-        setLoggedIn(true);
-      }
-    }
-  };
-  asyFunc();
+		// not connected
+		if ((await window.ic.plug.isConnected()) == false) {
+			try {
+				// agent
+				await window.ic.plug.requestConnect({
+					whitelist: whitelist,
+					host: host,
+				});
 
-  // if not logged in it shows this handler
-  const loginHanlder = async () => {
-    var authClient = await AuthClient.create();
-    await authClient.login({
-      onSuccess: () => {
-        const identity = authClient.getIdentity();
-        console.log(identity, "identity");
-        actor = createActor(canisterId, {
-          agentOptions: {
-            identity,
-          },
-        });
-        setLoggedIn(true);
-      },
-      identityProvider:
-        "http://localhost:8000/?canisterId=rwlgt-iiaaa-aaaaa-aaaaa-cai",
-    });
-  };
+				// fetching root
+				console.log(
+					await window.ic.plug.agent.fetchRootKey(),
+					"fetching root key"
+				);
 
-  const logoutHandler = async () => {
-    var authClient = await AuthClient.create();
-    await authClient.logout();
-    setLoggedIn(false);
-  };
+				// actor
+				const actor = await window.ic.plug.createActor({
+					canisterId: process.env.BACKEND_CANISTER_ID,
+					interfaceFactory: IDL,
+				});
 
-  //  <Header props={loggedIn}/>
-  return (
-    <div>
-      <div>Logged in: {JSON.stringify(loggedIn)}</div>
-      {loggedIn ? (
-        <button onClick={logoutHandler}>logout</button>
-      ) : (
-        <button onClick={loginHanlder}>login</button>
-      )}
-    </div>
-  );
-}
+				var newPlugState = {
+					isLoggedIn: true,
+					plug: await window.ic.plug,
+					actor: actor,
+				};
+				setPlug(newPlugState);
+			} catch (error) {
+				console.log(error);
+			}
+
+			// connected
+		} else {
+			if (plug.isConnected == false) {
+				await window.ic.plug.requestConnect({
+					whitelist: whitelist,
+					host: host,
+				});
+
+				// fetching root
+				console.log(
+					await window.ic.plug.agent.fetchRootKey(),
+					"fetching root key"
+				);
+
+				// actor
+				const actor = await window.ic.plug.createActor({
+					canisterId: process.env.BACKEND_CANISTER_ID,
+					interfaceFactory: IDL,
+				});
+
+				var newPlugState = {
+					isLoggedIn: true,
+					plug: await window.ic.plug,
+					actor: actor,
+				};
+
+				setPlug(newPlugState);
+			}
+			console.log("connect and state is right");
+		}
+	};
+
+	return (
+		<div>
+			<Header
+				loginHandler={loginHandler}
+				logoutHandler={logoutHandler}
+				plug={plug}
+			/>
+
+			<div style={{ margin: "20px" }}>
+				{plug.isLoggedIn ? (
+					<div>
+						<Minter actor={plug.actor} />
+					</div>
+				) : (
+					<div>You are not logged in</div>
+				)}
+			</div>
+		</div>
+	);
+};
 
 export default App;

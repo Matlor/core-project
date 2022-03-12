@@ -1,3 +1,24 @@
-service : {
-  test: () -> ();
-}
+type TokenId = nat;
+type DRC721 = 
+ service {
+   approve: (principal, TokenId) -> ();
+   balanceOf: (principal) -> (opt nat);
+   getAllNFTs: () -> (vec record {
+                            nat;
+                            text;
+                          }) query;
+   getApproved: (nat) -> (principal);
+   getMyTokens: () -> (vec record {
+                             nat;
+                             opt text;
+                           });
+   isApprovedForAll: (principal, principal) -> (bool);
+   mint: (text) -> (nat);
+   name: () -> (text) query;
+   ownerOf: (TokenId) -> (opt principal);
+   setApprovalForAll: (principal, bool) -> () oneway;
+   symbol: () -> (text) query;
+   tokenURI: (TokenId) -> (opt text) query;
+   transferFrom: (principal, principal, nat) -> () oneway;
+ };
+service : (text, text) -> DRC721
